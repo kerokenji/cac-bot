@@ -7,19 +7,26 @@ const CAT_PRICE = config.CAT_PRICE || 1500;
 // Mua mèo mới
 async function buyCat(userId, breed) {
     const pointsRow = db.prepare('SELECT points FROM users WHERE user_id = ?').get(userId);
-    if (!pointsRow || pointsRow.points < CAT_PRICE) return { success: false, msg: '❌ Không đủ điểm!' };
+    if (!pointsRow || pointsRow.points < config.CAT_PRICE) {
+        return { success: false, msg: '❌ Không đủ điểm! Cần 1500 điểm.' };
+    }
 
     // Trừ điểm
-    db.prepare('UPDATE users SET points = points - ? WHERE user_id = ?').run(CAT_PRICE, userId);
+    db.prepare('UPDATE users SET points = points - ? WHERE user_id = ?').run(config.CAT_PRICE, userId);
 
-    // Tạo mèo
     const now = Math.floor(Date.now() / 1000);
-    db.prepare(`
-        INSERT OR REPLACE INTO pets (user_id, breed, last_fed, sickness, rabies_expire, mood)
-        VALUES (?, ?, ?, 5, ?, 10)
-    `).run(userId, breed, now, now + 30 * 24 * 3600); // tiêm dại sau 30 ngày
 
-    return { success: true, msg: `✅ Bạn đã mua **${breed}** thành công!` };
+    // Khi mua mèo mới → CHƯA TIÊM DẠI (rabies_expire = null hoặc 0)
+    db.prepare(`
+        INSERT OR REPLACE INTO pets 
+        (user_id, breed, last_fed, sickness, rabies_expire, mood, death_date)
+        VALUES (?, ?, ?, 5, NULL, 10, 0)
+    `).run(userId, breed, now);
+
+    return { 
+        success: true, 
+        msg: `✅ Bạn đã mua **${breed}** thành công!\n💉 Mèo chưa được tiêm dại.` 
+    };
 }
 
 // Cho ăn
