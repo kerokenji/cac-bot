@@ -6,8 +6,8 @@ const config = require('../config');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('playtime')
-        .setDescription('Xem thời gian chơi của bạn hoặc người khác')
-        .addUserOption(opt => opt.setName('người').setDescription('Người cần xem (để trống = bạn)')),
+        .setDescription('Xem thời gian chơi')
+        .addUserOption(opt => opt.setName('người').setDescription('Người cần xem (để trống là bạn)')),
 
     async execute(interaction) {
         if (!config.ALLOWED_GUILDS.includes(interaction.guild.id)) {
@@ -15,17 +15,21 @@ module.exports = {
         }
 
         const target = interaction.options.getUser('người') || interaction.user;
-        const minutes = await getPlaytimeForUser(target.id);
+        const isSelf = (target.id === interaction.user.id);
 
-        if (minutes === null) {
-            return interaction.reply({ content: `❌ ${target} chưa liên kết Steam với Discord.`, ephemeral: true });
+        const result = await getPlaytimeForUser(target.id);
+
+        let description = '';
+        if (!result.success) {
+            description = `${isSelf ? 'Bạn' : target} chưa liên kết Steam với Discord.`;
+        } else {
+            description = `**Người chơi**: ${target}\n**Giờ chơi**: ${result.hours} giờ (${result.minutes} phút)`;
         }
 
-        const hours = (minutes / 60).toFixed(1);
         const embed = new EmbedBuilder()
-            .setColor(0x43b581)
-            .setDescription(`**Người chơi**: ${target}\n**Giờ chơi**: \( {hours} giờ ( \){minutes} phút)`)
-            .setFooter({ text: 'Dữ liệu lấy từ sourcemod-local.sq3' });
+            .setColor(result.success ? 0x43b581 : 0xFF0000)
+            .setDescription(description)
+            .setFooter({ text: 'Dữ liệu lấy từ L4D2' });
 
         await interaction.reply({ embeds: [embed] });
     }
