@@ -21,5 +21,6 @@ client.once('ready', () => {
 
 client.on('messageCreate', (message) => require('./events/messageCreate')(message, client));
 client.on('voiceStateUpdate', (oldState, newState) => require('./events/voiceStateUpdate')(oldState, newState, client));
+client.on('interactionCreate', (interaction) => require('./events/interactionCreate')(interaction, client));
 
 client.login(config.TOKEN);
